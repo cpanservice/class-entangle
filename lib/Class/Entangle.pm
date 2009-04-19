@@ -133,7 +133,7 @@ use warnings;
 use Exporter 'import';
 
 our @EXPORT = qw/ entanglement entangler entangle /;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 my %DEFINED = (
     code => {},
@@ -281,3 +281,33 @@ sub entangle {
 }
 
 1;
+
+#{{{ End Pod
+
+__END__
+
+=back
+
+=head1 RESOURCES
+
+=over 4
+
+=item http://github.com/exodist/class-entangle/tree/master
+
+=item git://github.com/exodist/class-entangle.git
+
+=head1 AUTHOR
+
+Chad Granum E<lt>exodist7@gmail.comE<gt>
+
+=head1 COPYRIGHT
+
+Copyright 2009 Chad Granum
+
+licensed under the GPL version 3.
+You should have received a copy of the GNU General Public License
+along with this.  If not, see <http://www.gnu.org/licenses/>.
+
+=cut
+
+#}}}
