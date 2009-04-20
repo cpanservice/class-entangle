@@ -133,11 +133,12 @@ use warnings;
 use Exporter 'import';
 
 our @EXPORT = qw/ entanglement entangler entangle /;
-our $VERSION = '0.04';
+our $VERSION = '0.06';
 
 my %DEFINED = (
     code => {},
     loaded => {},
+    used => {},
 );
 
 =item entanglement( $object )
@@ -159,22 +160,42 @@ sub entanglement {
         my %defs;
 
         no strict 'refs';
-
-        while( my ( $name, $ref ) = each %{ $class . "::" }) {
-            next if grep { $_ eq $name } (qw/BEGIN END/);
-
-            push @{ $defs{ CODE }}   => $name if defined &{$ref};
-            push @{ $defs{ HASH }}   => $name if defined %{$ref};
-            push @{ $defs{ ARRAY }}  => $name if defined @{$ref};
-            push @{ $defs{ SCALAR }} => $name if defined ${$ref};
-
-            # IO have no sigil to use, have to dig into the glob.
-            push @{ $defs{ IO }}     => $name if defined *{$ref}{IO};
+        for my $item ( $class, @{ "$class\::ISA" }) {
+            my %set = _class_properties( $item );
+            while ( my ( $prop, $value ) = each %set ) {
+                $defs{ $prop } = { %{ $defs{ $prop } || {}}, %$value };
+            }
         }
+
+        for my $key ( keys %defs ) {
+            $defs{ $key } = [ keys %{ $defs{ $key } }];
+        }
+
         $DEFINED{ $class } = { class => $class, %defs };
     }
 
     return $DEFINED{ $class };
+}
+
+sub _class_properties {
+    my ( $class ) = @_;
+    no strict 'refs';
+
+    my %defs;
+    while( my ( $name, $ref ) = each %{ $class . "::" }) {
+        next if $name =~ m/::$/;
+        next if grep { $_ eq $name } (qw/BEGIN END/);
+
+        $defs{ CODE }->{ $name }++   if defined &{$ref};
+        $defs{ HASH }->{ $name }++   if defined %{$ref};
+        $defs{ ARRAY }->{ $name }++  if defined @{$ref};
+        $defs{ SCALAR }->{ $name }++ if defined ${$ref};
+
+        # IO have no sigil to use, have to dig into the glob.
+        $defs{ IO }->{ $name }++ if defined *{$ref}{IO};
+    }
+
+    return %defs;
 }
 
 =item entangler( $entanglement, %params )
@@ -235,10 +256,17 @@ sub entangler {
 sub _define_entangler {
     my ( $entanglement, $variation, %params ) = @_;
     my $class = $entanglement->{ class };
-    my $entangleclass = "Class\::_Entangle\::$class\::$variation";
+    my $entangleclass = ( delete $params{ entangleclass } ) ||
+                        "Class\::_Entangle\::$class\::$variation";
+
+    warn(
+        "Warning, redefining entangleclass: $entangleclass\n",
+        "This is almost certainly not what you want.\n"
+    ) if $DEFINED{ used }->{ $entangleclass };
+
+    $DEFINED{ used }->{ $entangleclass }++;
 
     no strict 'refs';
-    @{"$entangleclass\::ISA"} = ($class);
 
     # Take care of the subs
     if( my $ref = delete $params{ 'CODE' }) {

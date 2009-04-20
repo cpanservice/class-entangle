@@ -2,15 +2,32 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More tests => 13;
+use Data::Dumper;
 
 use_ok( 'Class::Entangle' );
 
+is( $Class::Entangle::VERSION, 0.06, "Testing against correct version" );
+
 #{{{ Test::TestClass
+{
+    package Test::TestClass::Parent;
+    use strict;
+    use warnings;
+
+    sub parent_method {
+        my $self = shift;
+        return $self;
+    }
+
+    our $parent_scalar = "parent";
+}
 {
     package Test::TestClass;
     use strict;
     use warnings;
+
+    use base 'Test::TestClass::Parent';
 
     sub new {
         my $class = shift;
@@ -88,14 +105,13 @@ my $entanglement = entanglement( $test );
 for ( values %$entanglement ) {
     $_ = [ sort @$_ ] if ref $_ eq 'ARRAY';
 }
-
 is_deeply(
     $entanglement,
     {
-        CODE    => [ sort qw/ subA subB new /],
-        SCALAR  => [ sort qw/ scalarB scalarA scalarFH /],
+        CODE    => [ sort qw/ subA subB new parent_method /],
+        SCALAR  => [ sort qw/ scalarB scalarA scalarFH parent_scalar VERSION /],
         HASH    => [ 'hashA' ],
-        ARRAY   => [ 'arrayB' ],
+        ARRAY   => [ 'ISA', 'arrayB' ],
         IO      => [ sort qw/ FH /],
         class   => ref $test,
     },
