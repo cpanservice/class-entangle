@@ -10,4 +10,5 @@ requires(
     'Exporter' => '5.63',
 );
 
+repository 'http://github.com/exodist/class-entangle';
 WriteAll;
